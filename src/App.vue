@@ -30,10 +30,10 @@
 </template>
 
 <script setup lang="jsx">
-import { ref, computed, reactive, watch, unref, onMounted } from "vue";
+import { ref, computed, watch, unref, onMounted } from "vue";
 import { Input, MessagePlugin } from "tdesign-vue-next";
 import { LIST_KEY } from "./type";
-import { isEmpty } from "lodash-es";
+import { isEmpty, cloneDeep } from "lodash-es";
 import useStorage from "./hooks/useStorage";
 
 const expandIcon = ref(true);
@@ -63,7 +63,7 @@ onMounted(async () => {
   }
 
   // 从 localStorage 初始化数据
-  const storage = await getStorage();
+  const storage = await getStorage(LIST_KEY);
   const domainList = !isEmpty(storage) ? Object.values(storage[LIST_KEY]) : [];
 
   if (!isEmpty(domainList)) {
@@ -72,11 +72,16 @@ onMounted(async () => {
 
   // 更新 localStorage 和 cookie
   if (!isEmpty(unref(data))) {
-    updateStorage(data.value);
+    // updateStorage(data.value);
 
-    data.value.forEach((item) => {
-      updateCookie(item);
-    });
+    data.value &&
+      data.value.forEach((item) => {
+        // 重置cookies数组
+        item.cookies = Object.keys(item.cookies).map(
+          (key) => item.cookies[key]
+        );
+        updateCookie(item);
+      });
   }
 });
 
@@ -101,24 +106,26 @@ const expandedRow = (h, { row }) => (
         添加Cookie
       </t-button>
     </div>
-    {row.cookies &&
-      row.cookies.map((cookie, index) => (
-        <div class="cookie-row">
-          <t-input
-            default-value="宽度自适应"
-            v-model={cookie.name}
-            placeholder="请输入源地址"
-          />
-          <t-popconfirm
-            content="确认删除吗"
-            onConfirm={() => onDeleteCookie(row.id, index)}
-          >
-            <t-link class="cookie__btn--delete" theme="primary" hover="color">
-              删除
-            </t-link>
-          </t-popconfirm>
-        </div>
-      ))}
+    {Array.isArray(row.cookies)
+      ? row.cookies.map((cookie, index) => (
+          <div class="cookie-row">
+            <t-input
+              value={cookie.name}
+              v-model={cookie.name}
+              onBlur={onCookieInputBlur}
+              placeholder="请输入源地址"
+            />
+            <t-popconfirm
+              content="确认删除吗"
+              onConfirm={() => onDeleteCookie(row.id, index)}
+            >
+              <t-link class="cookie__btn--delete" theme="primary" hover="color">
+                删除
+              </t-link>
+            </t-popconfirm>
+          </div>
+        ))
+      : null}
   </div>
 );
 
@@ -143,11 +150,21 @@ const onAddRow = async () => {
       : 0;
 
   const addDataId = (maxId + 1).toString();
-  data.value.push({ ...defaultData, id: addDataId });
+  data.value.push({
+    ...cloneDeep(defaultData),
+    id: addDataId,
+  });
   // 更新 localStorage 和 cookie
   await updateStorage(data.value);
 };
 
+/**
+ *  cookie 编辑完成后触发
+ */
+const onCookieInputBlur = (value) => {
+  // 更新storage
+  updateStorage(data.value);
+};
 /**
  * 添加cookie
  */
@@ -185,11 +202,12 @@ const validateTableData = async () => {
 /**
  * 更新cookie，刷新后台
  */
-const onUpdate = (e) => {
+const onUpdate = async (e) => {
   const { id } = e.currentTarget.dataset;
   const item = data.value.find((item) => item.id === id);
   console.log("onUpdate", e, id, item);
-  updateCookie(item);
+  await updateCookie(item);
+  MessagePlugin.success("更新成功");
 };
 
 /**
@@ -207,9 +225,8 @@ const onDelete = (id) => {
  * @param context 编辑完成后触发
  */
 const onInputEdited = (context) => {
-  console.log(context);
   const newData = [...data.value];
-  newData.splice(context.rowIndex, 1, context.newRowData);
+  newData.splice(context.rowIndex, 1, cloneDeep(context.newRowData));
   data.value = newData;
   console.log("Edit from:", context);
   MessagePlugin.success("Success");
