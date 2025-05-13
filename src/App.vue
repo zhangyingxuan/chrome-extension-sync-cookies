@@ -52,7 +52,8 @@ const align = ref("left");
 const data = ref([]);
 const tableRef = ref();
 
-const { updateStorage, getStorage, updateCookie } = useStorage();
+const { updateStorage, getStorage, updateCookie, updateStorageObj } =
+  useStorage();
 
 onMounted(async () => {
   // 初始化开启同步状态
@@ -60,6 +61,8 @@ onMounted(async () => {
 
   if (!isEmpty(openSyncLocal)) {
     isOpenSync.value = openSyncLocal.isOpenSync;
+  } else {
+    await updateStorageObj({ isOpenSync: isOpenSync.value });
   }
 
   // 从 localStorage 初始化数据
@@ -86,7 +89,7 @@ onMounted(async () => {
 });
 
 watch(isOpenSync, async () => {
-  await chrome.storage.local.set({ isOpenSync: isOpenSync.value });
+  await updateStorageObj({ isOpenSync: isOpenSync.value });
 });
 
 /**

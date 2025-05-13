@@ -14,16 +14,21 @@ function addCookiesChangeEvent() {
     if (Object.keys(storage).length === 0) return;
     const domainList = Object.values(storage["domainList"]);
 
-    // 需求更新的 cookie
+    // 需要更新的域名
     const targetDomain = domainList.find((item) => {
       // 域名匹配
       return equalDomain(item.from, cookie.domain);
     });
-    const targetCookie = targetDomain
-      ? targetDomain.cookies.find((item) => {
-          return item.name === cookie.name;
-        })
-      : null;
+
+    if (!targetDomain || !targetDomain.cookies) return;
+
+    // 需要更新的 cookie
+    targetDomain.cookies = Object.keys(targetDomain.cookies).map(
+      (key) => targetDomain.cookies[key]
+    );
+    const targetCookie = targetDomain.cookies.find((item) => {
+      return item.name === cookie.name;
+    });
 
     if (targetCookie) {
       if (removed) {

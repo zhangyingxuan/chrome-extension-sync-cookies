@@ -58,10 +58,15 @@ const useStorage = () => {
     });
   }
 
+  async function updateStorageObj(obj: any) {
+    return await chrome.storage.local.set(obj);
+  }
+
   return {
     updateStorage,
     getStorage,
     updateCookie,
+    updateStorageObj
   };
 };
 
