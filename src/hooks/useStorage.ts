@@ -1,73 +1,41 @@
-import {
-  ICookieTableDataSource,
-  ICookie,
-  TCookieConfig,
-  LIST_KEY,
-} from "../type";
+import { ICookieTableDataSource, ICookie, TCookieConfig, LIST_KEY } from "../type";
 
-// 增加协议头
-function addProtocol(uri: string) {
-  return uri.startsWith("http") ? uri : `http://${uri}`;
-}
+const addProtocol = (uri: string) => uri.startsWith("http") ? uri : `http://${uri}`;
+const removeProtocol = (uri: string) => uri.startsWith("http") ? uri.replace("http://", "").replace("https://", "") : uri;
 
-// 移除协议头
-function removeProtocol(uri: string) {
-  return uri.startsWith("http")
-    ? uri.replace("http://", "").replace("https://", "")
-    : uri;
-}
+const useStorage = () => ({
+  updateStorage: (list: ICookieTableDataSource[]) => chrome.storage.local.set({ [LIST_KEY]: list }),
+  getStorage: (key = LIST_KEY) => chrome.storage.local.get(key),
+  updateStorageObj: (obj: any) => chrome.storage.local.set(obj),
 
-const useStorage = () => {
-  async function updateStorage(list: ICookieTableDataSource[]) {
-    await chrome.storage.local.set({ [LIST_KEY]: list });
-  }
-
-  async function getStorage(key = LIST_KEY) {
-    return await chrome.storage.local.get(key);
-  }
-
-  async function updateCookie(config: TCookieConfig) {
+  async updateCookie(config: TCookieConfig) {
     try {
-      let success: any = true;
-      // 批量更新cookie
-      if (config.cookies) {
-        for (const cookie of config.cookies) {
-          const cookieCache = await chrome.cookies.get({
-            url: addProtocol(config.from || "url"),
-            name: cookie.name,
-          });
-          success = cookieCache ? await setCookie(cookieCache, config) : false;
-          if (!success) break;
-        }
-      }
+      if (!config.cookies) return true;
 
-      return success;
+      // 并行处理所有cookie操作，提高效率
+      const promises = config.cookies.map(async (cookie) => {
+        const cookieCache = await chrome.cookies.get({
+          url: addProtocol(config.from || "url"),
+          name: cookie.name,
+        });
+        if (!cookieCache) return false;
+
+        return chrome.cookies.set({
+          url: addProtocol(config.to || "url"),
+          domain: removeProtocol(config.to || "url"),
+          name: cookie.name,
+          path: "/",
+          value: cookie.value,
+        });
+      });
+
+      const results = await Promise.all(promises);
+      return results.every(result => result !== false);
     } catch (error) {
       console.error("error: ", error);
       return false;
     }
   }
-
-  function setCookie(cookie: ICookie, config: TCookieConfig) {
-    return chrome.cookies.set({
-      url: addProtocol(config.to || "url"),
-      domain: removeProtocol(config.to || "url"),
-      name: cookie.name,
-      path: "/",
-      value: cookie.value,
-    });
-  }
-
-  async function updateStorageObj(obj: any) {
-    return await chrome.storage.local.set(obj);
-  }
-
-  return {
-    updateStorage,
-    getStorage,
-    updateCookie,
-    updateStorageObj
-  };
-};
+});
 
 export default useStorage;

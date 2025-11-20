@@ -1,49 +1,58 @@
-addCookiesChangeEvent();
+// 延迟初始化，避免阻塞启动
+chrome.runtime.onStartup.addListener(() => {
+  setTimeout(addCookiesChangeEvent, 1000);
+});
+
+chrome.runtime.onInstalled.addListener(() => {
+  setTimeout(addCookiesChangeEvent, 1000);
+});
+
+let isOpenSyncCache = true;
+let domainListCache = null;
 
 function addCookiesChangeEvent() {
-  console.log("start addCookiesChangeEvent");
+  // 预缓存配置
+  chrome.storage.local.get(["isOpenSync", "domainList"]).then((result) => {
+    isOpenSyncCache = result.isOpenSync ?? true;
+    domainListCache = result.domainList;
+  });
+
   chrome.cookies.onChanged.addListener(async ({ cookie, removed }) => {
-    // 判断是否开启同步
-    const openSyncObj = await chrome.storage.local.get("isOpenSync");
-    const isOpenSync = openSyncObj.isOpenSync;
+    if (!isOpenSyncCache) return;
+    if (!domainListCache) return;
 
-    if (!isOpenSync) return;
-
-    const storage = await chrome.storage.local.get(["domainList"]);
-
-    if (Object.keys(storage).length === 0) return;
-    const domainList = Object.values(storage["domainList"]);
-
-    // 需要更新的域名
-    const targetDomain = domainList.find((item) => {
-      // 域名匹配
-      return equalDomain(item.from, cookie.domain);
-    });
-
-    if (!targetDomain || !targetDomain.cookies) return;
-
-    // 需要更新的 cookie
-    targetDomain.cookies = Object.keys(targetDomain.cookies).map(
-      (key) => targetDomain.cookies[key]
+    const targetDomain = Object.values(domainListCache).find((item) =>
+      equalDomain(item.from, cookie.domain)
     );
-    const targetCookie = targetDomain.cookies.find((item) => {
-      return item.name === cookie.name;
-    });
+
+    if (!targetDomain?.cookies) return;
+
+    const cookiesArray = Object.values(targetDomain.cookies);
+    const targetCookie = cookiesArray.find((item) => item.name === cookie.name);
 
     if (targetCookie) {
-      if (removed) {
-        removeCookie(cookie, targetCookie);
-      } else {
-        setCookie(cookie, targetCookie);
-      }
+      removed
+        ? removeCookie(cookie, targetCookie)
+        : setCookie(cookie, targetCookie);
     }
   });
+
+  // 定期更新缓存
+  setInterval(() => {
+    chrome.storage.local.get(["isOpenSync", "domainList"]).then((result) => {
+      isOpenSyncCache = result.isOpenSync ?? true;
+      domainListCache = result.domainList;
+    });
+  }, 30000);
 }
 
 function setCookie(cookie, config) {
+  const url = config.to || "url";
   return chrome.cookies.set({
-    url: addProtocol(config.to || "url"),
-    domain: removeProtocol(config.to || "url"),
+    url: url.startsWith("http") ? url : `http://${url}`,
+    domain: url.startsWith("http")
+      ? url.replace("http://", "").replace("https://", "")
+      : url,
     name: cookie.name,
     path: "/",
     value: cookie.value,
@@ -51,24 +60,14 @@ function setCookie(cookie, config) {
 }
 
 function removeCookie(cookie, config) {
+  const url = config.to || "url";
   chrome.cookies.remove({
-    url: addProtocol(config.to || "url"),
+    url: url.startsWith("http") ? url : `http://${url}`,
     name: cookie.name,
   });
 }
 
-// 增加协议头
-function addProtocol(uri) {
-  return uri.startsWith("http") ? uri : `http://${uri}`;
-}
-
-// 移除协议头
-function removeProtocol(uri) {
-  return uri.startsWith("http")
-    ? uri.replace("http://", "").replace("https://", "")
-    : uri;
-}
-
 function equalDomain(domain1, domain2) {
-  return addProtocol(domain1) === addProtocol(domain2);
+  const normalize = (uri) => (uri.startsWith("http") ? uri : `http://${uri}`);
+  return normalize(domain1) === normalize(domain2);
 }
