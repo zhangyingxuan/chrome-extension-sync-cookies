@@ -32,18 +32,23 @@ function addCookiesChangeEvent() {
 
     if (targetCookie) {
       removed
-        ? removeCookie(cookie, targetCookie)
-        : setCookie(cookie, targetCookie);
+        ? removeCookie(cookie, { ...targetCookie, to: targetDomain.to })
+        : setCookie(cookie, { ...targetCookie, to: targetDomain.to });
     }
   });
 
-  // 定期更新缓存
-  setInterval(() => {
-    chrome.storage.local.get(["isOpenSync", "domainList"]).then((result) => {
-      isOpenSyncCache = result.isOpenSync ?? true;
-      domainListCache = result.domainList;
-    });
-  }, 30000);
+  // 监听storage变化，立即更新缓存
+  // chrome.storage.onChanged.addListener((changes) => {
+  chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace === "local") {
+      if (changes.isOpenSync) {
+        isOpenSyncCache = changes.isOpenSync.newValue ?? true;
+      }
+      if (changes.domainList) {
+        domainListCache = changes.domainList.newValue;
+      }
+    }
+  });
 }
 
 function setCookie(cookie, config) {

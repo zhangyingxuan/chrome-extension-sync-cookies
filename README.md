@@ -1,44 +1,162 @@
-<p style="display:flex; justify-content: center">
+# Chrome Cookie 同步扩展
 
-</p>
-<p align="center">
-  <a href="https://tdesign.tencent.com/vue-next/overview" target="_blank">
-  </a>
-</p>
+一个功能强大的 Chrome 浏览器扩展，用于在不同域名之间自动同步 cookies，特别适合开发和测试环境使用。
 
-<p align="center">
-  <a href="https://nodejs.org/en/about/releases/"><img src="https://img.shields.io/node/v/vite.svg" alt="node compatility"></a>
-  <a href="https://github.com/Tencent/tdesign-react-starter/blob/develop/LICENSE">
-    <img src="https://img.shields.io/npm/l/tdesign-react.svg?sanitize=true" alt="License">
-  </a>
-</p>
+## 功能特性
 
-## 项目简介
+### 🚀 核心功能
 
-`tdesign-vue-next` 是一个 TDesign 适配桌面端的组件库，适合在 vue3.x 技术栈项目中使用。
+- **自动同步**: 实时监听 cookie 变化并自动同步到目标域名
+- **多域名支持**: 支持配置多个源域名到目标域名的同步规则
+- **智能匹配**: 支持子域名匹配和 www 前缀自动处理
+- **双向同步**: 支持 cookie 的添加、修改和删除操作
 
-## 开发
+### ⚡ 性能优化
+
+- **高效缓存**: 智能缓存机制减少 API 调用
+- **并行处理**: 批量 cookie 操作使用并行处理提升效率
+- **延迟初始化**: 优化启动性能，减少资源占用
+
+### 🛡️ 稳定性保障
+
+- **错误处理**: 完善的错误处理和重试机制
+- **循环检测**: 防止扩展自身触发的循环同步
+- **详细日志**: 便于调试和问题排查
+
+## 安装使用
+
+### 环境要求
+
+- Chrome 浏览器 88+
+- Node.js 16+
+- pnpm 7+
 
 ### 安装依赖
 
 ```bash
-npm install
+pnpm install
 ```
 
-### 启动项目
+### 开发模式
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
-## 构建
-
-### 构建正式环境
+### 构建生产版本
 
 ```bash
-npm run build
+pnpm build
 ```
 
-## 开源协议
+## 配置说明
 
-TDesign 遵循 [MIT 协议](https://github.com/Tencent/tdesign-starter-cli/blob/develop/LICENSE)。
+### 同步规则配置
+
+在扩展界面中，您可以配置以下同步规则：
+
+1. **源域名**: 监听的 cookie 变更来源域名
+2. **目标域名**: 同步到的目标域名
+3. **Cookie 列表**: 指定需要同步的具体 cookie 名称
+
+### 示例配置
+
+```json
+{
+  "domainList": {
+    "rule1": {
+      "from": "example.com",
+      "to": "test.example.com",
+      "cookies": {
+        "session_id": {
+          "name": "session_id",
+          "to": "test.example.com"
+        },
+        "user_token": {
+          "name": "user_token",
+          "to": "test.example.com"
+        }
+      }
+    }
+  }
+}
+```
+
+## 使用场景
+
+### 开发测试
+
+- 在开发环境和测试环境之间同步登录状态
+- 避免重复登录操作，提高开发效率
+
+### 多环境部署
+
+- 在不同部署环境（开发/测试/预发布）间保持登录状态
+- 简化环境切换流程
+
+### 域名迁移
+
+- 在新旧域名迁移过程中保持用户会话
+- 平滑过渡，减少用户影响
+
+## 技术架构
+
+### 核心组件
+
+- **background.js**: 后台脚本，负责 cookie 变更监听和同步
+- **App.vue**: 主界面，提供规则配置和管理
+- **useStorage.ts**: 存储管理 hook，处理配置数据的读写
+
+### 关键技术
+
+- Chrome Extension API (cookies, storage)
+- Vue 3 + TypeScript
+- Vite 构建工具
+- TDesign UI 组件库
+
+## 开发指南
+
+### 项目结构
+
+```
+├── public/
+│   └── background.js          # 后台脚本
+├── src/
+│   ├── App.vue               # 主应用组件
+│   ├── hooks/
+│   │   └── useStorage.ts     # 存储管理hook
+│   └── main.ts               # 应用入口
+├── manifest.json             # 扩展清单文件
+└── package.json              # 项目配置
+```
+
+### 扩展 manifest 配置
+
+扩展使用 Manifest V3，支持现代 Chrome 浏览器特性。
+
+## 故障排除
+
+### 常见问题
+
+1. **同步不生效**
+
+   - 检查扩展是否启用
+   - 确认同步开关已打开
+   - 验证域名配置是否正确
+
+2. **权限问题**
+
+   - 确保扩展有 cookies 和 storage 权限
+   - 检查目标域名是否在权限范围内
+
+3. **性能问题**
+   - 减少不必要的 cookie 同步规则
+   - 定期清理过期配置
+
+## 贡献指南
+
+欢迎提交 Issue 和 Pull Request 来改进这个项目。
+
+## 许可证
+
+MIT License

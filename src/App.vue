@@ -1,27 +1,18 @@
 <template>
   <div>
+    <!-- 示例代码有效，勿删 -->
     <t-row class="operate__row" align="center" justify="space-between">
       <t-col>
         <t-button @click="onAddRow">新增</t-button>
-        <t-button
-          @click="onExportRules"
-          variant="outline"
-          style="margin-left: 8px"
-          >导出规则</t-button
-        >
-        <t-button
-          @click="onImportRules"
-          variant="outline"
-          style="margin-left: 8px"
-          >导入规则</t-button
-        >
       </t-col>
       <t-col class="col--center">
         自动同步&nbsp;&nbsp;
-        <t-switch v-model="isOpenSync" size="medium" :label="['开', '关']" />
+        <t-switch v-model="isOpenSync" size="medium" :label="['开', '关']">
+        </t-switch>
       </t-col>
     </t-row>
     <br />
+    <!-- 当前示例包含：输入框、单选、多选、日期 等场景 -->
     <t-table
       ref="tableRef"
       row-key="id"
@@ -39,7 +30,7 @@
 </template>
 
 <script setup lang="jsx">
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, unref, onMounted } from "vue";
 import { Input, MessagePlugin } from "tdesign-vue-next";
 import { LIST_KEY } from "./type";
 import { isEmpty, cloneDeep } from "lodash-es";
@@ -48,6 +39,8 @@ import useStorage from "./hooks/useStorage";
 const expandIcon = ref(true);
 const expandedRowKeys = ref([]);
 const isOpenSync = ref(true);
+
+// 取出缓存中的数据，回填至页面
 
 const defaultData = {
   id: "",
@@ -63,34 +56,47 @@ const { updateStorage, getStorage, updateCookie, updateStorageObj } =
   useStorage();
 
 onMounted(async () => {
-  // 并行加载数据，减少等待时间
-  const [openSyncLocal, storage] = await Promise.all([
-    getStorage("isOpenSync"),
-    getStorage(LIST_KEY),
-  ]);
+  // 初始化开启同步状态
+  const openSyncLocal = await getStorage("isOpenSync");
 
-  isOpenSync.value = isEmpty(openSyncLocal) ? true : openSyncLocal.isOpenSync;
-
-  if (isEmpty(openSyncLocal)) {
-    updateStorageObj({ isOpenSync: isOpenSync.value });
+  if (!isEmpty(openSyncLocal)) {
+    isOpenSync.value = openSyncLocal.isOpenSync;
+  } else {
+    await updateStorageObj({ isOpenSync: isOpenSync.value });
   }
 
-  const domainList = isEmpty(storage) ? [] : Object.values(storage[LIST_KEY]);
+  // 从 localStorage 初始化数据
+  const storage = await getStorage(LIST_KEY);
+  const domainList = !isEmpty(storage) ? Object.values(storage[LIST_KEY]) : [];
 
   if (!isEmpty(domainList)) {
     data.value = domainList;
-    // 延迟处理cookie更新，避免阻塞界面渲染
-    setTimeout(() => {
+  }
+
+  // 更新 localStorage 和 cookie
+  if (!isEmpty(unref(data))) {
+    // updateStorage(data.value);
+
+    data.value &&
       data.value.forEach((item) => {
-        item.cookies = Object.values(item.cookies);
+        // 重置cookies数组
+        item.cookies = Object.keys(item.cookies).map(
+          (key) => item.cookies[key]
+        );
         updateCookie(item);
       });
-    }, 100);
   }
 });
 
-watch(isOpenSync, () => updateStorageObj({ isOpenSync: isOpenSync.value }));
+watch(isOpenSync, async () => {
+  await updateStorageObj({ isOpenSync: isOpenSync.value });
+});
 
+/**
+ * 展开行
+ * @param h
+ * @param param1
+ */
 const expandedRow = (h, { row }) => (
   <div class="more-detail">
     <div class="cookie-operate-row">
@@ -103,57 +109,91 @@ const expandedRow = (h, { row }) => (
         添加Cookie
       </t-button>
     </div>
-    {row.cookies?.map((cookie, index) => (
-      <div class="cookie-row">
-        <t-input
-          value={cookie.name}
-          v-model={cookie.name}
-          onBlur="updateStorage(data.value)"
-          placeholder="请输入源地址"
-        />
-        <t-popconfirm
-          content="确认删除吗"
-          onConfirm={() => onCookieAction(row.id, index, "delete")}
-        >
-          <t-link class="cookie__btn--delete" theme="primary" hover="color">
-            删除
-          </t-link>
-        </t-popconfirm>
-      </div>
-    ))}
+    {Array.isArray(row.cookies)
+      ? row.cookies.map((cookie, index) => (
+          <div class="cookie-row">
+            <t-input
+              value={cookie.name}
+              v-model={cookie.name}
+              onBlur={onCookieInputBlur}
+              placeholder="请输入源地址"
+            />
+            <t-popconfirm
+              content="确认删除吗"
+              onConfirm={() => onDeleteCookie(row.id, index)}
+            >
+              <t-link class="cookie__btn--delete" theme="primary" hover="color">
+                删除
+              </t-link>
+            </t-popconfirm>
+          </div>
+        ))
+      : null}
   </div>
 );
 
-const rehandleExpandChange = (value) => {
+const rehandleExpandChange = (value, params) => {
   expandedRowKeys.value = value;
+  console.log("rehandleExpandChange", value, params);
 };
 
+/**
+ * 添加域名行
+ */
 const onAddRow = async () => {
-  if (!(await validateTableData())) return;
+  // 校验数据
+  const success = await validateTableData();
+  if (!success) {
+    return;
+  }
 
   const maxId =
     data.value.length > 0
       ? Math.max(...data.value.map((item) => Number(item.id)))
       : 0;
-  data.value.push({ ...cloneDeep(defaultData), id: (maxId + 1).toString() });
+
+  const addDataId = (maxId + 1).toString();
+  data.value.push({
+    ...cloneDeep(defaultData),
+    id: addDataId,
+  });
+  // 更新 localStorage 和 cookie
   await updateStorage(data.value);
 };
 
-const onCookieAction = (rowId, index, action) => {
+/**
+ *  cookie 编辑完成后触发
+ */
+const onCookieInputBlur = (value) => {
+  // 更新storage
+  updateStorage(data.value);
+};
+/**
+ * 添加cookie
+ */
+const onAddCookie = (e) => {
+  const { rowId } = e.currentTarget.dataset;
   const item = data.value.find((item) => item.id === rowId);
-  if (action === "delete") {
-    item.cookies.splice(index, 1);
-  } else {
-    item.cookies.push({ name: "cookie" });
-  }
+  item.cookies.push({
+    name: "cookie",
+  });
   updateStorage(data.value);
 };
 
-const onAddCookie = (e) =>
-  onCookieAction(e.currentTarget.dataset.rowId, null, "add");
+/**
+ * 添加cookie
+ */
+const onDeleteCookie = (rowId, index) => {
+  const item = data.value.find((item) => item.id === rowId);
+  item.cookies.splice(index, 1);
+  updateStorage(data.value);
+};
 
+// 用于提交前校验数据（示例代码有效，勿删）
 const validateTableData = async () => {
+  // 仅校验处于编辑态的单元格
   const result = await tableRef.value.validateTableData();
+  console.log("validate result: ", result);
   if (result.result.length) {
     const r = result.result[0];
     MessagePlugin.error(`${r.col.title} ${r.errorList[0].message}`);
@@ -162,174 +202,39 @@ const validateTableData = async () => {
   return true;
 };
 
+/**
+ * 更新cookie，刷新后台
+ */
 const onUpdate = async (e) => {
-  const item = data.value.find(
-    (item) => item.id === e.currentTarget.dataset.id
-  );
+  const { id } = e.currentTarget.dataset;
+  const item = data.value.find((item) => item.id === id);
+  console.log("onUpdate", e, id, item);
   await updateCookie(item);
   MessagePlugin.success("更新成功");
 };
 
+/**
+ * 删除当前配置
+ * @param e
+ */
 const onDelete = (id) => {
-  data.value.splice(
-    data.value.findIndex((item) => item.id === id),
-    1
-  );
+  const index = data.value.findIndex((item) => item.id === id);
+  data.value.splice(index, 1);
   updateStorage(data.value);
 };
 
+/**
+ *
+ * @param context 编辑完成后触发
+ */
 const onInputEdited = (context) => {
-  data.value.splice(context.rowIndex, 1, cloneDeep(context.newRowData));
-  MessagePlugin.success("Success");
+  const newData = [...data.value];
+  newData.splice(context.rowIndex, 1, cloneDeep(context.newRowData));
+  data.value = newData;
+  console.log("Edit from:", context);
+  MessagePlugin.success("保存成功");
+  // 更新storage
   updateStorage(data.value);
-};
-
-// 导出规则功能
-const onExportRules = async () => {
-  try {
-    if (data.value.length === 0) {
-      MessagePlugin.warning("没有规则数据可导出");
-      return;
-    }
-
-    // 准备导出的数据
-    const exportData = {
-      version: "1.0",
-      exportTime: new Date().toISOString(),
-      rules: data.value.map((rule) => ({
-        id: rule.id,
-        from: rule.from,
-        to: rule.to,
-        cookies: rule.cookies.map((cookie) => ({
-          name: cookie.name,
-        })),
-      })),
-    };
-
-    // 创建下载链接
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-
-    // 创建下载链接并触发下载
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `cookie-sync-rules-${new Date().getTime()}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    MessagePlugin.success(`成功导出 ${exportData.rules.length} 条规则`);
-  } catch (error) {
-    console.error("导出失败:", error);
-    MessagePlugin.error("导出规则失败");
-  }
-};
-
-// 导入规则功能
-const onImportRules = () => {
-  try {
-    // 创建文件输入元素
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.style.display = "none";
-
-    input.onchange = async (event) => {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      try {
-        const fileContent = await readFileAsText(file);
-        const importData = JSON.parse(fileContent);
-
-        // 验证导入数据格式
-        if (!validateImportData(importData)) {
-          MessagePlugin.error("导入文件格式不正确");
-          return;
-        }
-
-        // 确认是否覆盖现有数据
-        const confirmMessage =
-          data.value.length > 0
-            ? `导入后将覆盖现有的 ${data.value.length} 条规则，是否继续？`
-            : "确认导入规则数据？";
-
-        const confirmResult = await MessagePlugin.confirm(
-          confirmMessage,
-          "导入确认"
-        );
-        if (confirmResult === "cancel") return;
-
-        // 处理导入数据
-        const processedRules = processImportData(importData.rules);
-
-        // 更新数据
-        data.value = processedRules;
-        await updateStorage(data.value);
-
-        MessagePlugin.success(`成功导入 ${processedRules.length} 条规则`);
-      } catch (error) {
-        console.error("导入失败:", error);
-        MessagePlugin.error("导入规则失败，请检查文件格式");
-      }
-
-      // 清理文件输入
-      document.body.removeChild(input);
-    };
-
-    document.body.appendChild(input);
-    input.click();
-  } catch (error) {
-    console.error("导入功能初始化失败:", error);
-    MessagePlugin.error("导入功能初始化失败");
-  }
-};
-
-// 读取文件为文本
-const readFileAsText = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
-    reader.onerror = (e) => reject(e);
-    reader.readAsText(file);
-  });
-};
-
-// 验证导入数据格式
-const validateImportData = (data) => {
-  if (!data || typeof data !== "object") return false;
-  if (!data.rules || !Array.isArray(data.rules)) return false;
-
-  return data.rules.every(
-    (rule) =>
-      rule &&
-      typeof rule === "object" &&
-      rule.from &&
-      typeof rule.from === "string" &&
-      rule.to &&
-      typeof rule.to === "string" &&
-      rule.cookies &&
-      Array.isArray(rule.cookies)
-  );
-};
-
-// 处理导入数据
-const processImportData = (rules) => {
-  const maxId =
-    data.value.length > 0
-      ? Math.max(...data.value.map((item) => Number(item.id)))
-      : 0;
-
-  return rules.map((rule, index) => ({
-    id: (maxId + index + 1).toString(),
-    from: rule.from,
-    to: rule.to,
-    cookies: rule.cookies.map((cookie) => ({
-      name: cookie.name || "cookie",
-    })),
-  }));
 };
 
 const columns = computed(() => [
@@ -337,13 +242,35 @@ const columns = computed(() => [
     title: "源地址",
     colKey: "from",
     align: align.value,
+    // 编辑状态相关配置，全部集中在 edit
     edit: {
+      // 1. 支持任意组件。需保证组件包含 `value` 和 `onChange` 两个属性，且 onChange 的第一个参数值为 new value。
+      // 2. 如果希望支持校验，组件还需包含 `status` 和 `tips` 属性。具体 API 含义参考 Input 组件
       component: Input,
-      props: { clearable: true, autofocus: true },
+      // props, 透传全部属性到 Input 组件。可以是一个函数，不同行有不同的 props 属性 时，使用 Function）
+      props: {
+        clearable: true,
+        autofocus: true,
+      },
+      // 触发校验的时机（when to validate)
       validateTrigger: "change",
+      // 透传给 component: Input 的事件（也可以在 edit.props 中添加）
+      // on: (editContext) => ({
+      //   onBlur: () => {
+      //     console.log("失去焦点", editContext);
+      //   },
+      //   onEnter: (ctx) => {
+      //     ctx?.e?.preventDefault();
+      //     console.log("onEnter", ctx);
+      //   },
+      // }),
+      // 除了点击非自身元素退出编辑态之外，还有哪些事件退出编辑态
       abortEditOnEvent: ["onEnter"],
+      // 编辑完成，退出编辑态后触发
       onEdited: onInputEdited,
+      // 校验规则，此处同 Form 表单。https://tdesign.tencent.com/vue-next/components/form
       rules: [{ required: true, message: "源地址不能为空" }],
+      // 默认是否为编辑状态
       defaultEditable: false,
     },
   },
@@ -351,13 +278,25 @@ const columns = computed(() => [
     title: "目标地址",
     colKey: "to",
     align: align.value,
+    // 编辑状态相关配置，全部集中在 edit
     edit: {
+      // 1. 支持任意组件。需保证组件包含 `value` 和 `onChange` 两个属性，且 onChange 的第一个参数值为 new value。
+      // 2. 如果希望支持校验，组件还需包含 `status` 和 `tips` 属性。具体 API 含义参考 Input 组件
       component: Input,
-      props: { clearable: true, autofocus: true },
+      // props, 透传全部属性到 Input 组件。可以是一个函数，不同行有不同的 props 属性 时，使用 Function）
+      props: {
+        clearable: true,
+        autofocus: true,
+      },
+      // 触发校验的时机（when to validate)
       validateTrigger: "change",
+      // 除了点击非自身元素退出编辑态之外，还有哪些事件退出编辑态
       abortEditOnEvent: ["onEnter"],
+      // 编辑完成，退出编辑态后触发
       onEdited: onInputEdited,
+      // 校验规则，此处同 Form 表单。https://tdesign.tencent.com/vue-next/components/form
       rules: [{ required: true, message: "目标地址不能为空" }],
+      // 默认是否为编辑状态
       defaultEditable: false,
     },
   },
@@ -365,24 +304,26 @@ const columns = computed(() => [
     title: "操作栏",
     colKey: "operate",
     width: 100,
-    cell: (h, { row }) => (
-      <div class="table-operations">
-        <t-link
-          theme="primary"
-          hover="color"
-          data-id={row.id}
-          onClick={onUpdate}
-        >
-          更新
-        </t-link>
-        &nbsp;&nbsp;
-        <t-popconfirm content="确认删除吗" onConfirm={() => onDelete(row.id)}>
-          <t-link theme="primary" hover="color">
-            删除
+    cell: (h, { row }) => {
+      return (
+        <div class="table-operations">
+          <t-link
+            theme="primary"
+            hover="color"
+            data-id={row.id}
+            onClick={onUpdate}
+          >
+            更新
           </t-link>
-        </t-popconfirm>
-      </div>
-    ),
+          &nbsp;&nbsp;
+          <t-popconfirm content="确认删除吗" onConfirm={() => onDelete(row.id)}>
+            <t-link theme="primary" hover="color">
+              删除
+            </t-link>
+          </t-popconfirm>
+        </div>
+      );
+    },
   },
 ]);
 </script>
