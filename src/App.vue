@@ -4,6 +4,18 @@
     <t-row class="operate__row" align="center" justify="space-between">
       <t-col>
         <t-button @click="onAddRow">新增</t-button>
+        <t-button
+          @click="onExportRules"
+          theme="default"
+          style="margin-left: 8px"
+          >导出规则</t-button
+        >
+        <t-button
+          @click="onImportRules"
+          theme="default"
+          style="margin-left: 8px"
+          >导入规则</t-button
+        >
       </t-col>
       <t-col class="col--center">
         自动同步&nbsp;&nbsp;
@@ -26,6 +38,13 @@
       @expand-change="rehandleExpandChange"
       :expandOnRowClick="false"
     />
+    <input
+      ref="fileInputRef"
+      type="file"
+      accept=".json"
+      style="display: none"
+      @change="onFileSelected"
+    />
   </div>
 </template>
 
@@ -39,6 +58,7 @@ import useStorage from "./hooks/useStorage";
 const expandIcon = ref(true);
 const expandedRowKeys = ref([]);
 const isOpenSync = ref(true);
+const fileInputRef = ref();
 
 // 取出缓存中的数据，回填至页面
 
@@ -75,8 +95,6 @@ onMounted(async () => {
 
   // 更新 localStorage 和 cookie
   if (!isEmpty(unref(data))) {
-    // updateStorage(data.value);
-
     data.value &&
       data.value.forEach((item) => {
         // 重置cookies数组
@@ -91,6 +109,107 @@ onMounted(async () => {
 watch(isOpenSync, async () => {
   await updateStorageObj({ isOpenSync: isOpenSync.value });
 });
+
+/**
+ * 导出规则为JSON文件
+ */
+const onExportRules = () => {
+  if (isEmpty(data.value)) {
+    MessagePlugin.warning("没有规则可导出");
+    return;
+  }
+
+  const exportData = {
+    version: "1.0",
+    exportTime: new Date().toISOString(),
+    rules: data.value,
+  };
+
+  const dataStr = JSON.stringify(exportData, null, 2);
+  const dataBlob = new Blob([dataStr], { type: "application/json" });
+
+  const url = URL.createObjectURL(dataBlob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `cookie-sync-rules-${new Date().getTime()}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  MessagePlugin.success("规则导出成功");
+};
+
+/**
+ * 触发文件选择
+ */
+const onImportRules = () => {
+  fileInputRef.value.click();
+};
+
+/**
+ * 处理文件选择
+ */
+const onFileSelected = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const importData = JSON.parse(e.target.result);
+
+      // 验证导入数据格式
+      if (!importData.rules || !Array.isArray(importData.rules)) {
+        throw new Error("无效的规则文件格式");
+      }
+
+      // 验证每个规则的基本结构
+      const validRules = importData.rules.filter(
+        (rule) => rule.id && rule.from && rule.to && Array.isArray(rule.cookies)
+      );
+
+      if (validRules.length === 0) {
+        throw new Error("文件中没有有效的规则数据");
+      }
+
+      // 生成新的ID以避免冲突
+      const existingIds = new Set(data.value.map((item) => item.id));
+      const newRules = validRules.map((rule) => ({
+        ...rule,
+        id: existingIds.has(rule.id) ? generateNewId(existingIds) : rule.id,
+      }));
+
+      // 合并现有规则和导入规则
+      data.value = [...data.value, ...newRules];
+
+      // 更新存储
+      updateStorage(data.value);
+
+      // 重置文件输入
+      event.target.value = "";
+
+      MessagePlugin.success(`成功导入 ${newRules.length} 条规则`);
+    } catch (error) {
+      console.error("导入失败:", error);
+      MessagePlugin.error(`导入失败: ${error.message}`);
+      event.target.value = "";
+    }
+  };
+
+  reader.readAsText(file);
+};
+
+/**
+ * 生成新的唯一ID
+ */
+const generateNewId = (existingIds) => {
+  let newId;
+  do {
+    newId = Date.now().toString();
+  } while (existingIds.has(newId));
+  return newId;
+};
 
 /**
  * 展开行
