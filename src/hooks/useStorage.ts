@@ -36,6 +36,11 @@ const useStorage = () => {
       // 批量更新cookie
       if (config.cookies) {
         for (const cookie of config.cookies) {
+          // 验证cookie.name是否存在
+          if (!cookie.name) {
+            console.warn('Cookie name is missing, skipping:', cookie);
+            continue;
+          }
           const cookieCache = await chrome.cookies.get({
             url: addProtocol(config.from || "url"),
             name: cookie.name,

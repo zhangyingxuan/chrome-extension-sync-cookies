@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "sync-cookies-cross-domain",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "同步域名间cookies，便于本地请求服务携带 cookie",
   "icons": {
     "16": "sources/cookie16.png",
