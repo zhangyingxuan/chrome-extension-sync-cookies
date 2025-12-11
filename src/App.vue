@@ -18,6 +18,13 @@
         >
       </t-col>
       <t-col class="col--center">
+        <t-select
+          :value="locale"
+          :options="SUPPORTED_LOCALES"
+          @change="setLocale"
+          size="medium"
+          style="width: 120px; margin-right: 16px"
+        />
         {{ t("autoSync") }}&nbsp;&nbsp;
         <t-switch
           v-model="isOpenSync"
@@ -58,9 +65,9 @@ import { Input, MessagePlugin } from "tdesign-vue-next";
 import { LIST_KEY } from "./type";
 import { isEmpty, cloneDeep } from "lodash-es";
 import useStorage from "./hooks/useStorage";
-import useI18n from "./hooks/useI18n";
+import useI18n, { SUPPORTED_LOCALES } from "./hooks/useI18n";
 
-const { t } = useI18n();
+const { t, locale, setLocale, init: initI18n } = useI18n();
 
 const expandIcon = ref(true);
 const expandedRowKeys = ref([]);
@@ -83,6 +90,8 @@ const { updateStorage, getStorage, updateCookie, updateStorageObj } =
   useStorage();
 
 onMounted(async () => {
+  await initI18n();
+
   // 初始化开启同步状态
   const openSyncLocal = await getStorage("isOpenSync");
 
