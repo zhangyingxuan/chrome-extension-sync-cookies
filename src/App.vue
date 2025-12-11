@@ -3,23 +3,27 @@
     <!-- 示例代码有效，勿删 -->
     <t-row class="operate__row" align="center" justify="space-between">
       <t-col>
-        <t-button @click="onAddRow">新增</t-button>
+        <t-button @click="onAddRow">{{ t("add") }}</t-button>
         <t-button
           @click="onExportRules"
           theme="default"
           style="margin-left: 8px"
-          >导出规则</t-button
+          >{{ t("exportRules") }}</t-button
         >
         <t-button
           @click="onImportRules"
           theme="default"
           style="margin-left: 8px"
-          >导入规则</t-button
+          >{{ t("importRules") }}</t-button
         >
       </t-col>
       <t-col class="col--center">
-        自动同步&nbsp;&nbsp;
-        <t-switch v-model="isOpenSync" size="medium" :label="['开', '关']">
+        {{ t("autoSync") }}&nbsp;&nbsp;
+        <t-switch
+          v-model="isOpenSync"
+          size="medium"
+          :label="[t('on'), t('off')]"
+        >
         </t-switch>
       </t-col>
     </t-row>
@@ -54,6 +58,9 @@ import { Input, MessagePlugin } from "tdesign-vue-next";
 import { LIST_KEY } from "./type";
 import { isEmpty, cloneDeep } from "lodash-es";
 import useStorage from "./hooks/useStorage";
+import useI18n from "./hooks/useI18n";
+
+const { t } = useI18n();
 
 const expandIcon = ref(true);
 const expandedRowKeys = ref([]);
@@ -115,7 +122,7 @@ watch(isOpenSync, async () => {
  */
 const onExportRules = () => {
   if (isEmpty(data.value)) {
-    MessagePlugin.warning("没有规则可导出");
+    MessagePlugin.warning(t("noRulesToExport"));
     return;
   }
 
@@ -137,7 +144,7 @@ const onExportRules = () => {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 
-  MessagePlugin.success("规则导出成功");
+  MessagePlugin.success(t("rulesExportSuccess"));
 };
 
 /**
@@ -161,7 +168,7 @@ const onFileSelected = (event) => {
 
       // 验证导入数据格式
       if (!importData.rules || !Array.isArray(importData.rules)) {
-        throw new Error("无效的规则文件格式");
+        throw new Error(t("invalidRuleFile"));
       }
 
       // 验证每个规则的基本结构
@@ -170,7 +177,7 @@ const onFileSelected = (event) => {
       );
 
       if (validRules.length === 0) {
-        throw new Error("文件中没有有效的规则数据");
+        throw new Error(t("noValidRules"));
       }
 
       // 生成新的ID以避免冲突
@@ -189,10 +196,10 @@ const onFileSelected = (event) => {
       // 重置文件输入
       event.target.value = "";
 
-      MessagePlugin.success(`成功导入 ${newRules.length} 条规则`);
+      MessagePlugin.success(t("importSuccess", [newRules.length.toString()]));
     } catch (error) {
       console.error("导入失败:", error);
-      MessagePlugin.error(`导入失败: ${error.message}`);
+      MessagePlugin.error(t("importFail", [error.message]));
       event.target.value = "";
     }
   };
@@ -225,7 +232,7 @@ const expandedRow = (h, { row }) => (
         data-row-id={row.id}
         onClick={onAddCookie}
       >
-        添加Cookie
+        {t("addCookie")}
       </t-button>
     </div>
     {Array.isArray(row.cookies)
@@ -235,14 +242,14 @@ const expandedRow = (h, { row }) => (
               value={cookie.name}
               v-model={cookie.name}
               onBlur={onCookieInputBlur}
-              placeholder="请输入源地址"
+              placeholder={t("inputSourcePlaceholder")}
             />
             <t-popconfirm
-              content="确认删除吗"
+              content={t("confirmDelete")}
               onConfirm={() => onDeleteCookie(row.id, index)}
             >
               <t-link class="cookie__btn--delete" theme="primary" hover="color">
-                删除
+                {t("delete")}
               </t-link>
             </t-popconfirm>
           </div>
@@ -329,7 +336,7 @@ const onUpdate = async (e) => {
   const item = data.value.find((item) => item.id === id);
   console.log("onUpdate", e, id, item);
   await updateCookie(item);
-  MessagePlugin.success("更新成功");
+  MessagePlugin.success(t("updateSuccess"));
 };
 
 /**
@@ -351,14 +358,14 @@ const onInputEdited = (context) => {
   newData.splice(context.rowIndex, 1, cloneDeep(context.newRowData));
   data.value = newData;
   console.log("Edit from:", context);
-  MessagePlugin.success("保存成功");
+  MessagePlugin.success(t("saveSuccess"));
   // 更新storage
   updateStorage(data.value);
 };
 
 const columns = computed(() => [
   {
-    title: "源地址",
+    title: t("sourceAddress"),
     colKey: "from",
     align: align.value,
     // 编辑状态相关配置，全部集中在 edit
@@ -388,13 +395,13 @@ const columns = computed(() => [
       // 编辑完成，退出编辑态后触发
       onEdited: onInputEdited,
       // 校验规则，此处同 Form 表单。https://tdesign.tencent.com/vue-next/components/form
-      rules: [{ required: true, message: "源地址不能为空" }],
+      rules: [{ required: true, message: t("sourceAddressRequired") }],
       // 默认是否为编辑状态
       defaultEditable: false,
     },
   },
   {
-    title: "目标地址",
+    title: t("targetAddress"),
     colKey: "to",
     align: align.value,
     // 编辑状态相关配置，全部集中在 edit
@@ -414,13 +421,13 @@ const columns = computed(() => [
       // 编辑完成，退出编辑态后触发
       onEdited: onInputEdited,
       // 校验规则，此处同 Form 表单。https://tdesign.tencent.com/vue-next/components/form
-      rules: [{ required: true, message: "目标地址不能为空" }],
+      rules: [{ required: true, message: t("targetAddressRequired") }],
       // 默认是否为编辑状态
       defaultEditable: false,
     },
   },
   {
-    title: "操作栏",
+    title: t("operate"),
     colKey: "operate",
     width: 100,
     cell: (h, { row }) => {
@@ -432,12 +439,15 @@ const columns = computed(() => [
             data-id={row.id}
             onClick={onUpdate}
           >
-            更新
+            {t("update")}
           </t-link>
           &nbsp;&nbsp;
-          <t-popconfirm content="确认删除吗" onConfirm={() => onDelete(row.id)}>
+          <t-popconfirm
+            content={t("confirmDelete")}
+            onConfirm={() => onDelete(row.id)}
+          >
             <t-link theme="primary" hover="color">
-              删除
+              {t("delete")}
             </t-link>
           </t-popconfirm>
         </div>

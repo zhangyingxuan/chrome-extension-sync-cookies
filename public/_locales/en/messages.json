@@ -1,0 +1,39 @@
+{
+  "appName": { "message": "Cross-domain Cookie Sync" },
+  "appDesc": {
+    "message": "Automatically/Manually sync cookies between different domains, especially suitable for development and testing environments."
+  },
+  "actionTitle": {
+    "message": "Automatically/Manually sync cookies between different domains, especially suitable for development and testing environments."
+  },
+  "add": { "message": "Add" },
+  "exportRules": { "message": "Export Rules" },
+  "importRules": { "message": "Import Rules" },
+  "autoSync": { "message": "Auto Sync" },
+  "on": { "message": "On" },
+  "off": { "message": "Off" },
+  "noRulesToExport": { "message": "No rules to export" },
+  "rulesExportSuccess": { "message": "Rules exported successfully" },
+  "invalidRuleFile": { "message": "Invalid rule file format" },
+  "noValidRules": { "message": "No valid rules found in file" },
+  "importSuccess": {
+    "message": "Successfully imported $COUNT$ rules",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "importFail": {
+    "message": "Import failed: $ERROR$",
+    "placeholders": { "error": { "content": "$1" } }
+  },
+  "addCookie": { "message": "Add Cookie" },
+  "inputSourcePlaceholder": { "message": "Enter source address" },
+  "confirmDelete": { "message": "Are you sure to delete?" },
+  "delete": { "message": "Delete" },
+  "sourceAddress": { "message": "Source Address" },
+  "targetAddress": { "message": "Target Address" },
+  "operate": { "message": "Operations" },
+  "update": { "message": "Update" },
+  "updateSuccess": { "message": "Update successful" },
+  "saveSuccess": { "message": "Save successful" },
+  "sourceAddressRequired": { "message": "Source address is required" },
+  "targetAddressRequired": { "message": "Target address is required" }
+}

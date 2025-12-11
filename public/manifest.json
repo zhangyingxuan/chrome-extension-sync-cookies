@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "跨域同步cookies",
+  "name": "__MSG_appName__",
   "version": "1.1.0",
-  "description": "用于在不同域名之间自动同步/手动同步 cookies，特别适合开发和测试环境使用。",
+  "default_locale": "zh_CN",
+  "description": "__MSG_appDesc__",
   "icons": {
     "16": "sources/cookie16.png",
     "32": "sources/cookie32.png",
@@ -11,7 +12,7 @@
   },
   "action": {
     "default_icon": "sources/cookie48.png",
-    "default_title": "用于在不同域名之间自动/手动同步 cookies，特别适合开发和测试环境使用。",
+    "default_title": "__MSG_actionTitle__",
     "default_popup": "index.html"
   },
   "permissions": ["storage", "cookies"],

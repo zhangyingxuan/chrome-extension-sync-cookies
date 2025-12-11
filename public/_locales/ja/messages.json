@@ -1,0 +1,39 @@
+{
+  "appName": { "message": "クロスドメインCookie同期" },
+  "appDesc": {
+    "message": "異なるドメイン間でCookieを自動/手動で同期します。開発およびテスト環境に最適です。"
+  },
+  "actionTitle": {
+    "message": "異なるドメイン間でCookieを自動/手動で同期します。開発およびテスト環境に最適です。"
+  },
+  "add": { "message": "追加" },
+  "exportRules": { "message": "ルールをエクスポート" },
+  "importRules": { "message": "ルールをインポート" },
+  "autoSync": { "message": "自動同期" },
+  "on": { "message": "オン" },
+  "off": { "message": "オフ" },
+  "noRulesToExport": { "message": "エクスポートするルールがありません" },
+  "rulesExportSuccess": { "message": "ルールのエクスポートに成功しました" },
+  "invalidRuleFile": { "message": "無効なルールファイル形式です" },
+  "noValidRules": { "message": "ファイルに有効なルールが見つかりません" },
+  "importSuccess": {
+    "message": "$COUNT$ 件のルールをインポートしました",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "importFail": {
+    "message": "インポートに失敗しました: $ERROR$",
+    "placeholders": { "error": { "content": "$1" } }
+  },
+  "addCookie": { "message": "Cookieを追加" },
+  "inputSourcePlaceholder": { "message": "ソースアドレスを入力" },
+  "confirmDelete": { "message": "削除してもよろしいですか？" },
+  "delete": { "message": "削除" },
+  "sourceAddress": { "message": "ソースアドレス" },
+  "targetAddress": { "message": "ターゲットアドレス" },
+  "operate": { "message": "操作" },
+  "update": { "message": "更新" },
+  "updateSuccess": { "message": "更新しました" },
+  "saveSuccess": { "message": "保存しました" },
+  "sourceAddressRequired": { "message": "ソースアドレスは必須です" },
+  "targetAddressRequired": { "message": "ターゲットアドレスは必須です" }
+}

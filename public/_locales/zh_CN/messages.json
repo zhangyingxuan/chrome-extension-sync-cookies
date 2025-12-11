@@ -1,0 +1,39 @@
+{
+  "appName": { "message": "跨域同步cookies" },
+  "appDesc": {
+    "message": "用于在不同域名之间自动同步/手动同步 cookies，特别适合开发和测试环境使用。"
+  },
+  "actionTitle": {
+    "message": "用于在不同域名之间自动/手动同步 cookies，特别适合开发和测试环境使用。"
+  },
+  "add": { "message": "新增" },
+  "exportRules": { "message": "导出规则" },
+  "importRules": { "message": "导入规则" },
+  "autoSync": { "message": "自动同步" },
+  "on": { "message": "开" },
+  "off": { "message": "关" },
+  "noRulesToExport": { "message": "没有规则可导出" },
+  "rulesExportSuccess": { "message": "规则导出成功" },
+  "invalidRuleFile": { "message": "无效的规则文件格式" },
+  "noValidRules": { "message": "文件中没有有效的规则数据" },
+  "importSuccess": {
+    "message": "成功导入 $COUNT$ 条规则",
+    "placeholders": { "count": { "content": "$1" } }
+  },
+  "importFail": {
+    "message": "导入失败: $ERROR$",
+    "placeholders": { "error": { "content": "$1" } }
+  },
+  "addCookie": { "message": "添加Cookie" },
+  "inputSourcePlaceholder": { "message": "请输入源地址" },
+  "confirmDelete": { "message": "确认删除吗" },
+  "delete": { "message": "删除" },
+  "sourceAddress": { "message": "源地址" },
+  "targetAddress": { "message": "目标地址" },
+  "operate": { "message": "操作栏" },
+  "update": { "message": "更新" },
+  "updateSuccess": { "message": "更新成功" },
+  "saveSuccess": { "message": "保存成功" },
+  "sourceAddressRequired": { "message": "源地址不能为空" },
+  "targetAddressRequired": { "message": "目标地址不能为空" }
+}
