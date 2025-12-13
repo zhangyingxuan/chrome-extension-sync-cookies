@@ -16,6 +16,16 @@
           style="margin-left: 8px"
           >{{ t("importRules") }}</t-button
         >
+        <t-button
+          @click="openAboutPage"
+          theme="default"
+          variant="text"
+          shape="circle"
+          style="margin-left: 8px"
+          :title="t('aboutAuthor')"
+        >
+          <template #icon><InfoCircleIcon /></template>
+        </t-button>
       </t-col>
       <t-col class="col--center">
         <t-select
@@ -62,6 +72,7 @@
 <script setup lang="jsx">
 import { ref, computed, watch, unref, onMounted } from "vue";
 import { Input, MessagePlugin } from "tdesign-vue-next";
+import { InfoCircleIcon } from "tdesign-icons-vue-next";
 import { LIST_KEY } from "./type";
 import { isEmpty, cloneDeep } from "lodash-es";
 import useStorage from "./hooks/useStorage";
@@ -73,6 +84,10 @@ const expandIcon = ref(true);
 const expandedRowKeys = ref([]);
 const isOpenSync = ref(true);
 const fileInputRef = ref();
+
+const openAboutPage = () => {
+  window.open("https://zhangyingxuan.github.io/about", "_blank");
+};
 
 // 取出缓存中的数据，回填至页面
 
