@@ -62,7 +62,7 @@ export default function useI18n() {
         const subs = Array.isArray(substitutions) ? substitutions : [substitutions];
         // Use a single pass replacement to avoid recursive replacement issues
         // Match $1, $2, etc.
-        msg = msg.replace(/\$(\d+)/g, (match, number) => {
+        msg = msg.replace(/\$(\d+)/g, (match: string, number: string) => {
           const index = parseInt(number, 10) - 1;
           if (index >= 0 && index < subs.length) {
             return subs[index];
@@ -73,7 +73,6 @@ export default function useI18n() {
       return msg;
     }
 
-    // Fallback
     if (typeof chrome !== 'undefined' && chrome.i18n) {
       return chrome.i18n.getMessage(key, substitutions) || key;
     }
@@ -84,11 +83,11 @@ export default function useI18n() {
   const init = async () => {
     if (typeof chrome === 'undefined' || !chrome.storage) return;
 
-    // 1. Try storage
+    // 1. 获取本地存储的 locale
     const data = await chrome.storage.local.get('app_locale');
     let targetLocale = data.app_locale;
 
-    // 2. Try browser language
+    // 2. 如果没有，获取浏览器的 locale
     if (!targetLocale) {
       const uiLang = chrome.i18n.getUILanguage();
       targetLocale = uiLang.replace('-', '_');

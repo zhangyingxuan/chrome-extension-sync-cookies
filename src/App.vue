@@ -438,7 +438,7 @@ const columns = computed(() => [
   {
     title: t("operate"),
     colKey: "operate",
-    width: 100,
+    width: 120,
     cell: (h, { row }) => {
       return (
         <div class="table-operations">
