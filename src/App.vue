@@ -7,15 +7,23 @@
         <t-button
           @click="onExportRules"
           theme="default"
+          variant="text"
+          shape="circle"
           style="margin-left: 8px"
-          >{{ t("exportRules") }}</t-button
+          :title="t('exportRules')"
         >
+          <template #icon><DownloadIcon /></template>
+        </t-button>
         <t-button
           @click="onImportRules"
           theme="default"
+          variant="text"
+          shape="circle"
           style="margin-left: 8px"
-          >{{ t("importRules") }}</t-button
+          :title="t('importRules')"
         >
+          <template #icon><UploadIcon /></template>
+        </t-button>
         <t-button
           @click="openAboutPage"
           theme="default"
@@ -28,13 +36,15 @@
         </t-button>
       </t-col>
       <t-col class="col--center">
-        <t-select
-          :value="locale"
-          :options="SUPPORTED_LOCALES"
-          @change="setLocale"
-          size="medium"
-          style="width: 120px; margin-right: 16px"
-        />
+        <t-dropdown
+          :options="localeOptions"
+          @click="handleLocaleChange"
+          trigger="click"
+        >
+          <t-button variant="text" shape="circle" style="margin-right: 16px">
+            <template #icon><TranslateIcon /></template>
+          </t-button>
+        </t-dropdown>
         {{ t("autoSync") }}&nbsp;&nbsp;
         <t-switch
           v-model="isOpenSync"
@@ -72,13 +82,29 @@
 <script setup lang="jsx">
 import { ref, computed, watch, unref, onMounted } from "vue";
 import { Input, MessagePlugin } from "tdesign-vue-next";
-import { InfoCircleIcon } from "tdesign-icons-vue-next";
+import {
+  InfoCircleIcon,
+  TranslateIcon,
+  DownloadIcon,
+  UploadIcon,
+} from "tdesign-icons-vue-next";
 import { LIST_KEY } from "./type";
 import { isEmpty, cloneDeep } from "lodash-es";
 import useStorage from "./hooks/useStorage";
 import useI18n, { SUPPORTED_LOCALES } from "./hooks/useI18n";
 
-const { t, locale, setLocale, init: initI18n } = useI18n();
+const { t, setLocale, init: initI18n } = useI18n();
+
+const localeOptions = computed(() =>
+  SUPPORTED_LOCALES.map((item) => ({
+    content: item.label,
+    value: item.value,
+  }))
+);
+
+const handleLocaleChange = (data) => {
+  setLocale(data.value);
+};
 
 const expandIcon = ref(true);
 const expandedRowKeys = ref([]);
